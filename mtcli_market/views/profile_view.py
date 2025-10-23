@@ -1,4 +1,5 @@
 import click
+from mtcli_market.conf import DIGITOS
 
 def exibir_profile(profile, symbol, block):
     if not profile:
@@ -15,5 +16,5 @@ def exibir_profile(profile, symbol, block):
     for price, count in ordered:
         # comprimento da barra proporcional
         bar = "#" * int((count / max_count) * max_bar_len)
-        click.echo(f"{price:>10.2f} | {count:>7} {bar}")
+        click.echo(f"{price:>10.{DIGITOS}f} | {count:>7} {bar}")
 
