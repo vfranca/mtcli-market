@@ -1,12 +1,12 @@
 import MetaTrader5 as mt5
 from collections import defaultdict, OrderedDict
+from datetime import datetime
 from math import floor
 from mtcli.mt5_context import mt5_conexao
 from mtcli.logger import setup_logger
 from typing import Dict, Any, Tuple, List, Union
 
 log = setup_logger()
-
 
 def _mapear_timeframe(timeframe: Union[str, int]) -> int:
     mapping = {
@@ -26,12 +26,24 @@ def _mapear_timeframe(timeframe: Union[str, int]) -> int:
             return mapping[tf_str]
         minutos = 1
         if tf_str.endswith("M"):
-            minutos = int(tf_str[:-1] or 1)
+            try:
+                minutos = int(tf_str[:-1])
+            except ValueError:
+                minutos = 1
         elif tf_str.endswith("H"):
-            minutos = int(tf_str[:-1] or 1) * 60
+            try:
+                minutos = int(tf_str[:-1]) * 60
+            except ValueError:
+                minutos = 60
         elif tf_str.endswith("D"):
-            minutos = int(tf_str[:-1] or 1) * 1440
+            try:
+                minutos = int(tf_str[:-1]) * 1440
+            except ValueError:
+                minutos = 1440
+        else:
+            minutos = 1
 
+    # conversão aproximada para timeframe MT5
     if minutos <= 1:
         return mt5.TIMEFRAME_M1
     elif minutos <= 5:
@@ -47,6 +59,8 @@ def _mapear_timeframe(timeframe: Union[str, int]) -> int:
     else:
         return mt5.TIMEFRAME_D1
 
+def _block_price(price: float, block: float) -> float:
+    return round(round(price / block) * block, 8)
 
 def _range_blocks(low: float, high: float, block: float) -> List[float]:
     low_b = floor(low / block) * block
@@ -58,32 +72,27 @@ def _range_blocks(low: float, high: float, block: float) -> List[float]:
         b -= block
     return blocks
 
-
 def _distribuir_volume_uniforme(volume: float, blocks: List[float]) -> Dict[float, float]:
     if not blocks:
         return {}
     per = volume / len(blocks)
     return {b: per for b in blocks}
 
-
-def calcular_profile(symbol: str, bars: int, block: float, by: str = 'time',
-                     ib_minutes: int = 30, va_percent: float = 0.7,
-                     timeframe: Union[str, int] = "M1") -> Dict[str, Any]:
+def calcular_profile(symbol: str, bars: int, block: float, by: str = 'time', ib_minutes: int = 30, va_percent: float = 0.7, timeframe: Union[str, int] = "M1") -> Dict[str, Any]:
     tf = _mapear_timeframe(timeframe)
     with mt5_conexao():
         rates = mt5.copy_rates_from_pos(symbol, tf, 0, bars)
-        if rates is None or len(rates) == 0:
+        if rates is None:
             log.warning('Nenhum dado retornado para %s', symbol)
             return {}
 
         profile = defaultdict(float)
         tpo = defaultdict(int)
+        rates_list = sorted(list(rates), key=lambda r: r['time'])
 
-        for r in rates:
-            low = float(r['low'])
-            high = float(r['high'])
-            tick_vol = float(r['tick_volume'])
-            real_vol = float(r['real_volume'])
+        for r in rates_list:
+            low = r.get('low', r.get('close'))
+            high = r.get('high', r.get('close'))
             blocks = _range_blocks(low, high, block)
 
             if by == 'time':
@@ -91,12 +100,13 @@ def calcular_profile(symbol: str, bars: int, block: float, by: str = 'time',
                     tpo[b] += 1
                     profile[b] += 1
             elif by == 'ticks':
+                tick_vol = r.get('tick_volume', 0) or 0
                 dist = _distribuir_volume_uniforme(tick_vol, blocks)
                 for b, v in dist.items():
                     profile[b] += v
                     tpo[b] += 1
             elif by == 'volume':
-                vol = real_vol or tick_vol
+                vol = r.get('real_volume', None) or r.get('tick_volume', 0) or 0
                 dist = _distribuir_volume_uniforme(vol, blocks)
                 for b, v in dist.items():
                     profile[b] += v
@@ -137,11 +147,14 @@ def calcular_profile(symbol: str, bars: int, block: float, by: str = 'time',
                 elif vol <= max(0.0, media - desvio):
                     lvn.append(price)
 
-        start_time = rates[0]['time']
-        limite = start_time + ib_minutes * 60
-        ib_rates = [r for r in rates if r['time'] <= limite]
-        ib_high = max(r['high'] for r in ib_rates) if ib_rates else None
-        ib_low = min(r['low'] for r in ib_rates) if ib_rates else None
+        ib_high, ib_low = None, None
+        if rates_list:
+            start_time = rates_list[0]['time']
+            limite = start_time + ib_minutes * 60
+            ib_rates = [r for r in rates_list if r['time'] <= limite]
+            if ib_rates:
+                ib_high = max(r['high'] for r in ib_rates)
+                ib_low = min(r['low'] for r in ib_rates)
 
         return {
             'profile': ordered_profile,
@@ -154,7 +167,7 @@ def calcular_profile(symbol: str, bars: int, block: float, by: str = 'time',
             'hvn': hvn,
             'lvn': lvn,
             'ib': {'high': ib_high, 'low': ib_low} if ib_high and ib_low else None,
-            'rates_count': len(rates),
+            'rates_count': len(rates_list),
             'by': by,
             'block': block,
             'va_percent': va_percent,

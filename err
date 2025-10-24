@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Scripts\mt.exe\__main__.py", line 7, in <module>
+    sys.exit(mt())
+             ~~^^
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Lib\site-packages\click\core.py", line 1462, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Lib\site-packages\click\core.py", line 1383, in main
+    rv = self.invoke(ctx)
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Lib\site-packages\click\core.py", line 1850, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Lib\site-packages\click\core.py", line 1246, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrador\AppData\Local\pypoetry\Cache\virtualenvs\mtcli-market-stkaXQS--py3.13\Lib\site-packages\click\core.py", line 814, in invoke
+    return callback(*args, **kwargs)
+  File "C:\Users\Administrador\cli\mtcli-market\mtcli_market\commands\profile.py", line 36, in profile
+    resultado = obter_profile(symbol=symbol, bars=bars, block=block, by=by, ib_minutes=ib_minutes, va_percent=va_percent, timeframe=timeframe)
+  File "C:\Users\Administrador\cli\mtcli-market\mtcli_market\controllers\profile_controller.py", line 4, in obter_profile
+    resultado = calcular_profile(symbol=symbol, bars=bars, block=block, by=by, ib_minutes=ib_minutes, va_percent=va_percent, timeframe=timeframe)
+  File "C:\Users\Administrador\cli\mtcli-market\mtcli_market\models\profile_model.py", line 94, in calcular_profile
+    low = r.get('low', r.get('close'))
+          ^^^^^
+AttributeError: 'numpy.void' object has no attribute 'get'

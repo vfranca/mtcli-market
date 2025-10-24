@@ -1,20 +1,69 @@
 import click
-from mtcli_market.conf import DIGITOS
+from typing import Dict, Any
 
-def exibir_profile(profile, symbol, block):
-    if not profile:
-        click.echo("Nenhum dado para exibir.")
+def exibir_profile(resultado: Dict[str, Any], symbol: str, compact: bool = False) -> None:
+    """Exibe o resultado do profile em formato textual acessível.
+
+    - compact=False: descrição textual detalhada, pensada para leitores de tela.
+    - compact=True: saída mais curta, adequada para parsing/integração.
+    """
+    if not resultado:
+        click.echo(f"Nenhum dado para exibir para o ativo {symbol}.")
         return
 
-    click.echo(f"\nMarket Profile para {symbol} — bloco = {block}\n")
-    # Ordenar por preço descendente para visual tipo gráfico vertical
-    ordered = sorted(profile.items(), key=lambda x: x[0], reverse=True)
+    profile = resultado.get('profile', {})
+    tpo = resultado.get('tpo', {})
 
-    max_count = max(count for _, count in ordered)
-    max_bar_len = 50  # largura máxima da barra no terminal
+    poc = resultado.get('poc')
+    vah = resultado.get('vah')
+    val = resultado.get('val')
+    hvn = resultado.get('hvn', [])
+    lvn = resultado.get('lvn', [])
+    ib = resultado.get('ib')
+    total_vol = resultado.get('total_volume')
+    total_tpo = resultado.get('total_tpo')
 
-    for price, count in ordered:
-        # comprimento da barra proporcional
-        bar = "#" * int((count / max_count) * max_bar_len)
-        click.echo(f"{price:>10.{DIGITOS}f} | {count:>7} {bar}")
+    # Cabeçalho
+    click.echo(f"Market Profile para {symbol}. Base: {resultado.get('by')}. Bloco: {resultado.get('block')}.")
 
+    if compact:
+        # saída programática simples
+        click.echo(f"POC:{poc}")
+        click.echo(f"VA:{val}:{vah}")
+        if ib:
+            click.echo(f"IB:{ib['low']}:{ib['high']}")
+        click.echo("DISTRIBUICAO:")
+        for price, vol in profile.items():
+            click.echo(f"{price}:{vol}")
+        return
+
+    # Verbose (descritivo)
+    if total_vol is not None:
+        click.echo(f"Total acumulado (soma das unidades do profile): {total_vol}.")
+    if total_tpo is not None and resultado.get('by') == 'time':
+        click.echo(f"Total de TPOs (visitas de preço): {total_tpo}.")
+
+    if poc is not None:
+        click.echo(f"Point of Control (POC): o preço com maior atividade é {poc}.")
+    if val is not None and vah is not None:
+        click.echo(f"Value Area: faixa entre {val} (baixo) e {vah} (alto), cobrindo aproximadamente {resultado.get('va_percent')*100}% do total.")
+
+    if hvn:
+        hvn_list = ', '.join(str(p) for p in hvn)
+        click.echo(f"Nodos de alto volume (HVN): {hvn_list}.")
+    if lvn:
+        lvn_list = ', '.join(str(p) for p in lvn)
+        click.echo(f"Nodos de baixo volume (LVN): {lvn_list}.")
+
+    if ib:
+        click.echo(f"Initial Balance (IB): de {ib['low']} a {ib['high']}.")
+
+    click.echo("Distribuicao de perfil (preco : valor) — do preço mais alto para o mais baixo:")
+    for price, vol in profile.items():
+        click.echo(f"{price} : {vol}")
+
+    # Complementos: exibir TPOs se disponíveis
+    if tpo:
+        click.echo("Contagem de visitas por faixa (TPO) — do preço mais alto para o mais baixo:")
+        for price, cnt in tpo.items():
+            click.echo(f"{price} : {cnt}")
