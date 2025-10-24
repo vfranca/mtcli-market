@@ -28,16 +28,20 @@ def exibir_profile(resultado: Dict[str, Any], symbol: str, compact: bool = False
 
     if compact:
         # saída programática simples
+        click.echo("DISTRIBUICAO:")
+        for price, vol in profile.items():
+            click.echo(f"{price}:{vol}")
         click.echo(f"POC:{poc}")
         click.echo(f"VA:{val}:{vah}")
         if ib:
             click.echo(f"IB:{ib['low']}:{ib['high']}")
-        click.echo("DISTRIBUICAO:")
-        for price, vol in profile.items():
-            click.echo(f"{price}:{vol}")
         return
 
     # Verbose (descritivo)
+    click.echo("Distribuicao de perfil (preco : valor) — do preço mais alto para o mais baixo:")
+    for price, vol in profile.items():
+        click.echo(f"{price} : {vol}")
+
     if total_vol is not None:
         click.echo(f"Total acumulado (soma das unidades do profile): {total_vol}.")
     if total_tpo is not None and resultado.get('by') == 'time':
@@ -57,10 +61,6 @@ def exibir_profile(resultado: Dict[str, Any], symbol: str, compact: bool = False
 
     if ib:
         click.echo(f"Initial Balance (IB): de {ib['low']} a {ib['high']}.")
-
-    click.echo("Distribuicao de perfil (preco : valor) — do preço mais alto para o mais baixo:")
-    for price, vol in profile.items():
-        click.echo(f"{price} : {vol}")
 
     # Complementos: exibir TPOs se disponíveis
     if tpo:

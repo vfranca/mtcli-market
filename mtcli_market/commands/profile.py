@@ -27,7 +27,7 @@ import MetaTrader5 as mt5
         "Timeframe para o cálculo do profile. Pode ser M1, M5, H1, D1, ou valores customizados como 2m (2 minutos), 3h (3 horas) ou 2d (2 dias)."
     ),
 )
-@click.option("--compact/--verbose", default=False, help="Modo compacto (menos texto) ou verboso (texto descritivo). Compact é pensado para leitura programática.")
+@click.option("--compact/--verbose", default=True, show_default=True, help="Modo compacto (menos texto) ou verboso (texto descritivo). Compact é pensado para leitura programática.")
 def profile(symbol, bars, block, by, ib_minutes, va_percent, timeframe, compact):
     """Calcula e exibe o Market Profile de um ativo, com saída textual acessível.
 
