@@ -14,6 +14,11 @@ dependencies = [
     "metatrader5 (>=5.0.5370,<6.0.0)"
 ]
 
+[project.urls]
+homepage = "https://github.com/vfranca/mtcli-market"
+repository = "https://github.com/vfranca/mtcli-market"
+issues = "https://github.com/vfranca/mtcli-market/issues"
+
 [project.entry-points."mtcli.plugins"]
 mtcli_market = "mtcli_market.plugin:register"
 
@@ -47,7 +52,7 @@ select = [
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mtcli", "mtcli_volume"]
+known-first-party = ["mtcli", "mtcli_market"]
 combine-as-imports = true
 force-sort-within-sections = true
 
