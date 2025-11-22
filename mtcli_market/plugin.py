@@ -1,5 +1,5 @@
-from mtcli_market.commands.profile import profile
+from mtcli_market.cli import profile
 
 
 def register(cli):
-    cli.add_command(profile, name="market")
+    cli.add_command(profile, name="mp")

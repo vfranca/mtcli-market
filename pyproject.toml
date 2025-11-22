@@ -1,9 +1,9 @@
 [project]
 name = "mtcli-market"
-version = "1.0.0.dev0"
-description = "Plugin do mtcli"
+version = "1.0.0.dev1"
+description = "Plugin mtcli para exibição do market profile"
 authors = [
-    {name = "Valmir França da Silva",email = "vfranca3@gmail.com"}
+    {name = "Valmir França",email = "vfranca3@gmail.com"}
 ]
 readme = "README.md"
 license = "GPL-3.0"

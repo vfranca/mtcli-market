@@ -29,18 +29,24 @@ def exibir_profile(
 
     # Cabeçalho
     click.echo(
-        f"Market Profile para {symbol}. Base: {resultado.get('by')}. Bloco: {resultado.get('block')}."
+        f"Market Profile para {symbol} base {resultado.get('by')} bloco {resultado.get('block')}"
     )
 
     if compact:
         # saída programática simples
         click.echo("DISTRIBUICAO:")
         for price, vol in profile.items():
-            click.echo(f"{price}:{vol}")
-        click.echo(f"POC:{poc}")
-        click.echo(f"VA:{val}:{vah}")
+            click.echo(f"{price} {vol}")
+        click.echo(f"POC {poc}")
+        click.echo(f"VA {val}:{vah}")
+        if hvn:
+            hvn_list = ", ".join(str(p) for p in hvn)
+            click.echo(f"HVNs {hvn_list}")
+        if lvn:
+            lvn_list = ", ".join(str(p) for p in lvn)
+            click.echo(f"LVNs {lvn_list}")
         if ib:
-            click.echo(f"IB:{ib['low']}:{ib['high']}")
+            click.echo(f"IB {ib['low']}:{ib['high']}")
         return
 
     # Verbose (descritivo)
