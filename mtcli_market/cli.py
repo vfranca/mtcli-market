@@ -1,15 +1,14 @@
 import click
 
 from mtcli_market.conf import (
-SYMBOL,
-PERIOD,
-    PERIODOS,
     BLOCK,
     BY,
-    IB,
+    PERIOD,
+    PERIODOS,
+    SYMBOL,
 )
-from mtcli_market.controllers.profile_controller import obter_profile
-from mtcli_market.views.profile_view import exibir_profile
+from mtcli_market.controller import obter_profile
+from mtcli_market.view import exibir_profile
 
 
 @click.command()
@@ -23,7 +22,7 @@ from mtcli_market.views.profile_view import exibir_profile
     default=PERIODOS,
     show_default=True,
     type=int,
-    help="Número de periodos usados para o calculo.",
+    help="Número de períodos (barras) usados para o cálculo.",
 )
 @click.option(
     "--block",
@@ -54,7 +53,7 @@ from mtcli_market.views.profile_view import exibir_profile
     default=0.7,
     show_default=True,
     type=float,
-    help="Percentual para cálculo da Value Area.",
+    help="Percentual (0..1) para cálculo da Value Area.",
 )
 @click.option(
     "--period",
@@ -64,23 +63,30 @@ from mtcli_market.views.profile_view import exibir_profile
     help="Timeframe para o cálculo do profile. Aceita valores customizados como 2d (2 dias).",
 )
 @click.option(
-    "--compact/--verbose",
-    default=True,
+    "--verbose",
+    "-vv",
+    is_flag=True,
+    default=False,
     show_default=True,
-    help="Modo compacto (menos texto) ou verboso (texto descritivo).",
+    help="Modo verboso (texto descritivo).",
 )
-def profile(symbol, periodos, block, by, initial_balance, va_percent, period, compact):
+def profile(symbol, periodos, block, by, initial_balance, va_percent, period, verbose):
     """Calcula e exibe o Market Profile de um ativo, com saída textual acessível."""
+    # Validação simples de entrada
+    if va_percent <= 0 or va_percent > 1:
+        raise click.BadParameter("va-percent deve estar no intervalo (0, 1].")
+    if block <= 0:
+        raise click.BadParameter("block deve ser maior que zero.")
     resultado = obter_profile(
         symbol=symbol,
         bars=periodos,
-        block=block,
+        block=float(block),
         by=by,
         ib_minutes=initial_balance,
         va_percent=va_percent,
         timeframe=period,
     )
-    exibir_profile(resultado, symbol=symbol, compact=compact)
+    exibir_profile(resultado, symbol=symbol, verbose=verbose)
 
 
 if __name__ == "__main__":

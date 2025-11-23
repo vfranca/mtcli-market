@@ -1,5 +1,6 @@
 from collections import OrderedDict, defaultdict
-from math import floor
+import datetime
+from math import ceil, floor
 from typing import Any
 
 import MetaTrader5 as mt5
@@ -13,12 +14,26 @@ log = setup_logger()
 def _mapear_timeframe(timeframe: str | int) -> int:
     mapping = {
         "M1": mt5.TIMEFRAME_M1,
+        "M2": mt5.TIMEFRAME_M2,
+        "M3": mt5.TIMEFRAME_M3,
+        "M4": mt5.TIMEFRAME_M4,
         "M5": mt5.TIMEFRAME_M5,
+        "M6": mt5.TIMEFRAME_M6,
+        "M10": mt5.TIMEFRAME_M10,
+        "M12": mt5.TIMEFRAME_M12,
         "M15": mt5.TIMEFRAME_M15,
+        "M20": mt5.TIMEFRAME_M20,
         "M30": mt5.TIMEFRAME_M30,
         "H1": mt5.TIMEFRAME_H1,
+        "H2": mt5.TIMEFRAME_H2,
+        "H3": mt5.TIMEFRAME_H3,
         "H4": mt5.TIMEFRAME_H4,
+        "H6": mt5.TIMEFRAME_H6,
+        "H8": mt5.TIMEFRAME_H8,
+        "H12": mt5.TIMEFRAME_H12,
         "D1": mt5.TIMEFRAME_D1,
+        "W1": mt5.TIMEFRAME_W1,
+        "MN1": mt5.TIMEFRAME_MN1,
     }
     if isinstance(timeframe, int):
         minutos = timeframe
@@ -51,8 +66,11 @@ def _mapear_timeframe(timeframe: str | int) -> int:
 
 
 def _range_blocks(low: float, high: float, block: float) -> list[float]:
+    """Lista de blocos de preço cobrindo [low, high], ordem decrescente."""
+    if block <= 0:
+        return []
     low_b = floor(low / block) * block
-    high_b = floor(high / block) * block
+    high_b = ceil(high / block) * block
     blocks = []
     b = high_b
     while b >= low_b:
@@ -70,6 +88,28 @@ def _distribuir_volume_uniforme(
     return {b: per for b in blocks}
 
 
+def _distribuir_volume_por_overlap(
+    low: float, high: float, block: float
+) -> dict[float, float]:
+    """Distribui volume proporcional ao overlap entre barra e bloco."""
+    blocks = _range_blocks(low, high, block)
+    if not blocks:
+        return {}
+    dist = {}
+    for b in blocks:
+        block_low = b - block
+        block_high = b
+        overlap_low = max(low, block_low)
+        overlap_high = min(high, block_high)
+        overlap = max(0.0, overlap_high - overlap_low)
+        dist[b] = overlap
+
+    total = sum(dist.values())
+    if total <= 0:
+        return _distribuir_volume_uniforme(1.0, blocks)
+    return {b: dist[b] / total for b in dist}
+
+
 def calcular_profile(
     symbol: str,
     bars: int,
@@ -80,8 +120,10 @@ def calcular_profile(
     timeframe: str | int = "M1",
 ) -> dict[str, Any]:
     tf = _mapear_timeframe(timeframe)
+
     with mt5_conexao():
         rates = mt5.copy_rates_from_pos(symbol, tf, 0, bars)
+
         if rates is None or len(rates) == 0:
             log.warning("Nenhum dado retornado para %s", symbol)
             return {}
@@ -92,24 +134,33 @@ def calcular_profile(
         for r in rates:
             low = float(r["low"])
             high = float(r["high"])
-            tick_vol = float(r["tick_volume"])
-            real_vol = float(r["real_volume"])
+
+            # Acesso correto aos campos numpy.void
+            tick_vol = (
+                float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
+            )
+            real_vol = (
+                float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
+            )
+
             blocks = _range_blocks(low, high, block)
 
             if by == "time":
                 for b in blocks:
                     tpo[b] += 1
                     profile[b] += 1
+
             elif by == "ticks":
-                dist = _distribuir_volume_uniforme(tick_vol, blocks)
-                for b, v in dist.items():
-                    profile[b] += v
+                weights = _distribuir_volume_por_overlap(low, high, block)
+                for b, w in weights.items():
+                    profile[b] += w * tick_vol
                     tpo[b] += 1
+
             elif by == "volume":
-                vol = real_vol or tick_vol
-                dist = _distribuir_volume_uniforme(vol, blocks)
-                for b, v in dist.items():
-                    profile[b] += v
+                volume = real_vol or tick_vol
+                weights = _distribuir_volume_por_overlap(low, high, block)
+                for b, w in weights.items():
+                    profile[b] += w * volume
                     tpo[b] += 1
 
         ordered_profile = OrderedDict(
@@ -118,6 +169,8 @@ def calcular_profile(
         ordered_tpo = OrderedDict(sorted(tpo.items(), key=lambda x: x[0], reverse=True))
 
         total_volume = sum(ordered_profile.values())
+        total_tpo = sum(ordered_tpo.values())
+
         poc = (
             max(ordered_profile.items(), key=lambda x: x[1])[0]
             if ordered_profile
@@ -127,51 +180,68 @@ def calcular_profile(
         def calcular_value_area(
             profile_map: dict[float, float], percent: float
         ) -> tuple[float, float, list[float]]:
-            if not profile_map or percent <= 0 or percent > 1:
+            if not profile_map:
                 return (None, None, [])
             target = sum(profile_map.values()) * percent
-            items = sorted(profile_map.items(), key=lambda x: x[1], reverse=True)
-            acum, selected = 0, []
-            for price, vol in items:
-                selected.append((price, vol))
+            itens = sorted(profile_map.items(), key=lambda x: x[1], reverse=True)
+            acum = 0
+            escolhidos = []
+            for price, vol in itens:
+                escolhidos.append(price)
                 acum += vol
                 if acum >= target:
                     break
-            prices = [p for p, _ in selected]
-            return (max(prices), min(prices), prices)
+            return (max(escolhidos), min(escolhidos), escolhidos)
 
-        vah, val, va_prices = (None, None, [])
-        if ordered_profile:
-            vah, val, va_prices = calcular_value_area(dict(ordered_profile), va_percent)
+        vah, val, va_prices = (
+            calcular_value_area(dict(ordered_profile), va_percent)
+            if ordered_profile
+            else (None, None, [])
+        )
 
         hvn, lvn = [], []
         if ordered_profile:
             vols = list(ordered_profile.values())
             media = sum(vols) / len(vols)
             desvio = (sum((v - media) ** 2 for v in vols) / len(vols)) ** 0.5
+
             for price, vol in ordered_profile.items():
                 if vol >= media + desvio:
                     hvn.append(price)
                 elif vol <= max(0.0, media - desvio):
                     lvn.append(price)
 
-        start_time = rates[0]["time"]
-        limite = start_time + ib_minutes * 60
-        ib_rates = [r for r in rates if r["time"] <= limite]
-        ib_high = max(r["high"] for r in ib_rates) if ib_rates else None
-        ib_low = min(r["low"] for r in ib_rates) if ib_rates else None
+        # IB baseado no primeiro dia presente
+        first_ts = rates[0]["time"]
+        d0 = datetime.datetime.utcfromtimestamp(first_ts).date()
+
+        inicio_dia = datetime.datetime(
+            d0.year, d0.month, d0.day, 0, 0, tzinfo=datetime.UTC
+        )
+        inicio_dia_ts = int(inicio_dia.timestamp())
+        limite_ts = inicio_dia_ts + ib_minutes * 60
+
+        ib_rates = [r for r in rates if inicio_dia_ts <= r["time"] <= limite_ts]
+
+        if ib_rates:
+            ib_high = max(r["high"] for r in ib_rates)
+            ib_low = min(r["low"] for r in ib_rates)
+            ib = {"high": ib_high, "low": ib_low}
+        else:
+            ib = None
 
         return {
             "profile": ordered_profile,
             "tpo": ordered_tpo,
             "total_volume": total_volume,
+            "total_tpo": total_tpo,
             "poc": poc,
             "vah": vah,
             "val": val,
             "va_prices": va_prices,
             "hvn": hvn,
             "lvn": lvn,
-            "ib": {"high": ib_high, "low": ib_low} if ib_high and ib_low else None,
+            "ib": ib,
             "rates_count": len(rates),
             "by": by,
             "block": block,
