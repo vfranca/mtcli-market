@@ -6,35 +6,35 @@ log = setup_logger()
 
 def obter_profile(
     symbol: str,
-    bars: int,
-    block: float,
-    by: str,
+    period: str,
+    limit: int,
+    range: float,
+    volume: str,
     ib_minutes: int = 30,
     va_percent: float = 0.7,
-    timeframe: str = "M1",
 ):
     # Normalização / validação de parâmetros
-    if by not in ("time", "ticks", "volume"):
-        log.warning("Parâmetro 'by' inválido (%s). Usando 'time'.", by)
-        by = "time"
+    if volume not in ("tpo", "tick", "real"):
+        log.warning(f"Parametro volume invalido {volume}. Usando tpo")
+        volume = "tpo"
 
     if va_percent <= 0 or va_percent > 1:
-        log.warning("va_percent fora de intervalo (0,1]. Usando 0.7.")
+        log.warning("va_percent fora de intervalo (0,1]. Usando 0.7")
         va_percent = 0.7
 
     try:
-        block = float(block)
+        range = float(range)
     except Exception:
-        log.warning("block inválido (%s). Usando 1.0.", block)
-        block = 1.0
+        log.warning(f"range invalido {range}. Usando 1.0.")
+        range = 1.0
 
     resultado = calcular_profile(
         symbol=symbol,
-        bars=bars,
-        block=block,
-        by=by,
+        limit=limit,
+        block=range,
+        by=volume,
         ib_minutes=ib_minutes,
         va_percent=va_percent,
-        timeframe=timeframe,
+        timeframe=period,
     )
     return resultado

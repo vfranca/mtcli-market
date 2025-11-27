@@ -1,11 +1,12 @@
 import click
 
 from mtcli_market.conf import (
-    BLOCK,
-    BY,
+    IB,
+    LIMIT,
     PERIOD,
-    PERIODOS,
+    RANGE,
     SYMBOL,
+    VOLUME,
 )
 from mtcli_market.controller import obter_profile
 from mtcli_market.view import exibir_profile
@@ -14,38 +15,46 @@ from mtcli_market.view import exibir_profile
 @click.command()
 @click.version_option(package_name="mtcli-market")
 @click.option(
-    "--symbol", "-s", default=SYMBOL, show_default=True, help="Ticker do ativo."
+    "--symbol", "-s", default=SYMBOL, show_default=True, help="Codigo do ativo."
 )
 @click.option(
-    "--periodos",
-    "-po",
-    default=PERIODOS,
+    "--period",
+    "-p",
+    default=PERIOD,
+    show_default=True,
+    help="Timeframe para o calculo do profile.",
+)
+@click.option(
+    "--limit",
+    "-l",
+    default=LIMIT,
     show_default=True,
     type=int,
-    help="Número de períodos (barras) usados para o cálculo.",
+    help="Número de períodos .",
 )
 @click.option(
-    "--block",
-    "-k",
-    default=BLOCK,
+    "--range",
+    "-r",
+    default=RANGE,
     show_default=True,
     type=float,
-    help="Tamanho de bloco de preço (em pontos).",
+    help="Tamanho do range de preco.",
 )
 @click.option(
-    "--by",
-    type=click.Choice(["time", "ticks", "volume"]),
-    default=BY,
+    "--volume",
+    "-v",
+    type=click.Choice(["tpo", "tick", "real"]),
+    default=VOLUME,
     show_default=True,
-    help="Base para o profile: time, ticks ou volume.",
+    help="Base para o profile.",
 )
 @click.option(
     "--initial-balance",
     "-ib",
-    default=30,
+    default=IB,
     show_default=True,
     type=int,
-    help="Duração (em minutos) do Initial Balance (IB).",
+    help="Duracao em minutos do Initial Balance.",
 )
 @click.option(
     "--va-percent",
@@ -53,14 +62,7 @@ from mtcli_market.view import exibir_profile
     default=0.7,
     show_default=True,
     type=float,
-    help="Percentual (0..1) para cálculo da Value Area.",
-)
-@click.option(
-    "--period",
-    "-p",
-    default=PERIOD,
-    show_default=True,
-    help="Timeframe para o cálculo do profile. Aceita valores customizados como 2d (2 dias).",
+    help="Percentual da Value Area.",
 )
 @click.option(
     "--verbose",
@@ -70,21 +72,21 @@ from mtcli_market.view import exibir_profile
     show_default=True,
     help="Modo verboso (texto descritivo).",
 )
-def profile(symbol, periodos, block, by, initial_balance, va_percent, period, verbose):
-    """Calcula e exibe o Market Profile de um ativo, com saída textual acessível."""
+def profile(symbol, period, limit, range, volume, initial_balance, va_percent, verbose):
+    """Calcula e exibe o Market Profile de um ativo."""
     # Validação simples de entrada
     if va_percent <= 0 or va_percent > 1:
         raise click.BadParameter("va-percent deve estar no intervalo (0, 1].")
-    if block <= 0:
-        raise click.BadParameter("block deve ser maior que zero.")
+    if range <= 0:
+        raise click.BadParameter("Range deve ser maior que zero.")
     resultado = obter_profile(
         symbol=symbol,
-        bars=periodos,
-        block=float(block),
-        by=by,
+        period=period,
+        limit=int(limit),
+        range=float(range),
+        volume=volume,
         ib_minutes=initial_balance,
         va_percent=va_percent,
-        timeframe=period,
     )
     exibir_profile(resultado, symbol=symbol, verbose=verbose)
 

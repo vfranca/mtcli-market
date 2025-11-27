@@ -43,7 +43,7 @@ def exibir_profile(
     click.echo("")
     click.echo("-" * 60)
     click.echo(
-        f"Market Profile para {symbol} — base {resultado.get('by')} — bloco {resultado.get('block')}"
+        f"Market Profile para {symbol} — volume {resultado.get('by')} — faixa {resultado.get('block')}"
     )
     click.echo("-" * 60)
     click.echo("")

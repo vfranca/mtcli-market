@@ -112,9 +112,9 @@ def _distribuir_volume_por_overlap(
 
 def calcular_profile(
     symbol: str,
-    bars: int,
+    limit: int,
     block: float,
-    by: str = "time",
+    by: str = "tpo",
     ib_minutes: int = 30,
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
@@ -122,10 +122,10 @@ def calcular_profile(
     tf = _mapear_timeframe(timeframe)
 
     with mt5_conexao():
-        rates = mt5.copy_rates_from_pos(symbol, tf, 0, bars)
+        rates = mt5.copy_rates_from_pos(symbol, tf, 0, limit)
 
         if rates is None or len(rates) == 0:
-            log.warning("Nenhum dado retornado para %s", symbol)
+            log.warning(f"Nenhum dado retornado para {symbol}")
             return {}
 
         profile = defaultdict(float)
@@ -145,18 +145,18 @@ def calcular_profile(
 
             blocks = _range_blocks(low, high, block)
 
-            if by == "time":
+            if by == "tpo":
                 for b in blocks:
                     tpo[b] += 1
                     profile[b] += 1
 
-            elif by == "ticks":
+            elif by == "tick":
                 weights = _distribuir_volume_por_overlap(low, high, block)
                 for b, w in weights.items():
                     profile[b] += w * tick_vol
                     tpo[b] += 1
 
-            elif by == "volume":
+            elif by == "real":
                 volume = real_vol or tick_vol
                 weights = _distribuir_volume_por_overlap(low, high, block)
                 for b, w in weights.items():
