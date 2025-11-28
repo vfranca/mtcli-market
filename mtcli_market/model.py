@@ -79,18 +79,14 @@ def _range_blocks(low: float, high: float, block: float) -> list[float]:
     return blocks
 
 
-def _distribuir_volume_uniforme(
-    volume: float, blocks: list[float]
-) -> dict[float, float]:
+def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[float, float]:
     if not blocks:
         return {}
     per = volume / len(blocks)
     return {b: per for b in blocks}
 
 
-def _distribuir_volume_por_overlap(
-    low: float, high: float, block: float
-) -> dict[float, float]:
+def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dict[float, float]:
     """Distribui volume proporcional ao overlap entre barra e bloco."""
     blocks = _range_blocks(low, high, block)
     if not blocks:
@@ -119,6 +115,7 @@ def calcular_profile(
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
 ) -> dict[str, Any]:
+
     tf = _mapear_timeframe(timeframe)
 
     with mt5_conexao():
@@ -131,17 +128,13 @@ def calcular_profile(
         profile = defaultdict(float)
         tpo = defaultdict(int)
 
+        # --- Distribuição (TPO, tick volume, real volume) ---
         for r in rates:
             low = float(r["low"])
             high = float(r["high"])
 
-            # Acesso correto aos campos numpy.void
-            tick_vol = (
-                float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
-            )
-            real_vol = (
-                float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
-            )
+            tick_vol = float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
+            real_vol = float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
 
             blocks = _range_blocks(low, high, block)
 
@@ -163,25 +156,19 @@ def calcular_profile(
                     profile[b] += w * volume
                     tpo[b] += 1
 
-        ordered_profile = OrderedDict(
-            sorted(profile.items(), key=lambda x: x[0], reverse=True)
-        )
+        # Ordenações
+        ordered_profile = OrderedDict(sorted(profile.items(), key=lambda x: x[0], reverse=True))
         ordered_tpo = OrderedDict(sorted(tpo.items(), key=lambda x: x[0], reverse=True))
 
         total_volume = sum(ordered_profile.values())
         total_tpo = sum(ordered_tpo.values())
 
-        poc = (
-            max(ordered_profile.items(), key=lambda x: x[1])[0]
-            if ordered_profile
-            else None
-        )
+        poc = max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
 
-        def calcular_value_area(
-            profile_map: dict[float, float], percent: float
-        ) -> tuple[float, float, list[float]]:
+        # --- Value Area ---
+        def calcular_value_area(profile_map: dict[float, float], percent: float):
             if not profile_map:
-                return (None, None, [])
+                return None, None, []
             target = sum(profile_map.values()) * percent
             itens = sorted(profile_map.items(), key=lambda x: x[1], reverse=True)
             acum = 0
@@ -191,14 +178,11 @@ def calcular_profile(
                 acum += vol
                 if acum >= target:
                     break
-            return (max(escolhidos), min(escolhidos), escolhidos)
+            return max(escolhidos), min(escolhidos), escolhidos
 
-        vah, val, va_prices = (
-            calcular_value_area(dict(ordered_profile), va_percent)
-            if ordered_profile
-            else (None, None, [])
-        )
+        vah, val, va_prices = calcular_value_area(dict(ordered_profile), va_percent)
 
+        # --- HVN e LVN ---
         hvn, lvn = [], []
         if ordered_profile:
             vols = list(ordered_profile.values())
@@ -211,16 +195,24 @@ def calcular_profile(
                 elif vol <= max(0.0, media - desvio):
                     lvn.append(price)
 
-        # IB baseado no primeiro dia presente
-        first_ts = rates[0]["time"]
-        d0 = datetime.datetime.utcfromtimestamp(first_ts).date()
+        # =====================================================================
+        #  CORREÇÃO DO INITIAL BALANCE (IB)
+        # =====================================================================
 
-        inicio_dia = datetime.datetime(
-            d0.year, d0.month, d0.day, 0, 0, tzinfo=datetime.UTC
-        )
+        # Sempre pegar o ÚLTIMO candle (mais recente)
+        last_ts = rates[-1]["time"]
+
+        # Data do candle, no timezone do servidor (sem UTC)
+        d0 = datetime.datetime.fromtimestamp(last_ts).date()
+
+        # Início correto do dia no timezone do servidor
+        inicio_dia = datetime.datetime(d0.year, d0.month, d0.day, 0, 0)
         inicio_dia_ts = int(inicio_dia.timestamp())
+
+        # IB = primeiros X minutos do dia
         limite_ts = inicio_dia_ts + ib_minutes * 60
 
+        # Selecionar candles que estão dentro do intervalo
         ib_rates = [r for r in rates if inicio_dia_ts <= r["time"] <= limite_ts]
 
         if ib_rates:
@@ -229,6 +221,8 @@ def calcular_profile(
             ib = {"high": ib_high, "low": ib_low}
         else:
             ib = None
+
+        # =====================================================================
 
         return {
             "profile": ordered_profile,

@@ -1,4 +1,4 @@
-from mtcli_market.cli import profile
+from .cli import profile
 
 
 def register(cli):

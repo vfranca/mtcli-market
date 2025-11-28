@@ -1,15 +1,15 @@
 import click
 
-from mtcli_market.conf import (
+from .conf import (
+BY,
     IB,
     LIMIT,
     PERIOD,
     RANGE,
     SYMBOL,
-    VOLUME,
 )
-from mtcli_market.controller import obter_profile
-from mtcli_market.view import exibir_profile
+from .controller import obter_profile
+from .view import exibir_profile
 
 
 @click.command()
@@ -41,10 +41,9 @@ from mtcli_market.view import exibir_profile
     help="Tamanho do range de preco.",
 )
 @click.option(
-    "--volume",
-    "-v",
+    "--by",
     type=click.Choice(["tpo", "tick", "real"]),
-    default=VOLUME,
+    default=BY,
     show_default=True,
     help="Base para o profile.",
 )
@@ -72,7 +71,7 @@ from mtcli_market.view import exibir_profile
     show_default=True,
     help="Modo verboso (texto descritivo).",
 )
-def profile(symbol, period, limit, range, volume, initial_balance, va_percent, verbose):
+def profile(symbol, period, limit, range, by, initial_balance, va_percent, verbose):
     """Calcula e exibe o Market Profile de um ativo."""
     # Validação simples de entrada
     if va_percent <= 0 or va_percent > 1:
@@ -84,7 +83,7 @@ def profile(symbol, period, limit, range, volume, initial_balance, va_percent, v
         period=period,
         limit=int(limit),
         range=float(range),
-        volume=volume,
+        by=by,
         ib_minutes=initial_balance,
         va_percent=va_percent,
     )

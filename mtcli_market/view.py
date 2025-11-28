@@ -2,7 +2,7 @@ from typing import Any
 
 import click
 
-from mtcli_market.conf import DIGITOS
+from .conf import DIGITOS
 
 
 def _format_num(v, digitos):
