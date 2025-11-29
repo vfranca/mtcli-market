@@ -79,14 +79,18 @@ def _range_blocks(low: float, high: float, block: float) -> list[float]:
     return blocks
 
 
-def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[float, float]:
+def _distribuir_volume_uniforme(
+    volume: float, blocks: list[float]
+) -> dict[float, float]:
     if not blocks:
         return {}
     per = volume / len(blocks)
     return {b: per for b in blocks}
 
 
-def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dict[float, float]:
+def _distribuir_volume_por_overlap(
+    low: float, high: float, block: float
+) -> dict[float, float]:
     """Distribui volume proporcional ao overlap entre barra e bloco."""
     blocks = _range_blocks(low, high, block)
     if not blocks:
@@ -115,7 +119,6 @@ def calcular_profile(
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
 ) -> dict[str, Any]:
-
     tf = _mapear_timeframe(timeframe)
 
     with mt5_conexao():
@@ -133,8 +136,12 @@ def calcular_profile(
             low = float(r["low"])
             high = float(r["high"])
 
-            tick_vol = float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
-            real_vol = float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
+            tick_vol = (
+                float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
+            )
+            real_vol = (
+                float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
+            )
 
             blocks = _range_blocks(low, high, block)
 
@@ -157,13 +164,19 @@ def calcular_profile(
                     tpo[b] += 1
 
         # Ordenações
-        ordered_profile = OrderedDict(sorted(profile.items(), key=lambda x: x[0], reverse=True))
+        ordered_profile = OrderedDict(
+            sorted(profile.items(), key=lambda x: x[0], reverse=True)
+        )
         ordered_tpo = OrderedDict(sorted(tpo.items(), key=lambda x: x[0], reverse=True))
 
         total_volume = sum(ordered_profile.values())
         total_tpo = sum(ordered_tpo.values())
 
-        poc = max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
+        poc = (
+            max(ordered_profile.items(), key=lambda x: x[1])[0]
+            if ordered_profile
+            else None
+        )
 
         # --- Value Area ---
         def calcular_value_area(profile_map: dict[float, float], percent: float):

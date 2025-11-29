@@ -1,4 +1,5 @@
 from mtcli.logger import setup_logger
+
 from .model import calcular_profile
 
 log = setup_logger()
@@ -8,7 +9,7 @@ def obter_profile(
     symbol: str,
     period: str,
     limit: int,
-    range: float,
+    block: float,
     by: str,
     ib_minutes: int = 30,
     va_percent: float = 0.7,
@@ -23,15 +24,15 @@ def obter_profile(
         va_percent = 0.7
 
     try:
-        range = float(range)
+        block = float(block)
     except Exception:
-        log.warning(f"range invalido {range}. Usando 1.0.")
-        range = 1.0
+        log.warning(f"Bloco invalido {block}. Usando 1.0.")
+        block = 1.0
 
     resultado = calcular_profile(
         symbol=symbol,
         limit=limit,
-        block=range,
+        block=block,
         by=by,
         ib_minutes=ib_minutes,
         va_percent=va_percent,

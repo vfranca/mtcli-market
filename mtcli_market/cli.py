@@ -1,7 +1,7 @@
 import click
 
 from .conf import (
-BY,
+    BY,
     IB,
     LIMIT,
     PERIOD,
@@ -22,7 +22,7 @@ from .view import exibir_profile
     "-p",
     default=PERIOD,
     show_default=True,
-    help="Timeframe para o calculo do profile.",
+    help="Timeframe do profile.",
 )
 @click.option(
     "--limit",
@@ -30,15 +30,15 @@ from .view import exibir_profile
     default=LIMIT,
     show_default=True,
     type=int,
-    help="Número de períodos .",
+    help="Quantidade de timeframes do profile.",
 )
 @click.option(
-    "--range",
-    "-r",
+    "--block",
+    "-k",
     default=RANGE,
     show_default=True,
     type=float,
-    help="Tamanho do range de preco.",
+    help="Tamanho do bloco de pontos.",
 )
 @click.option(
     "--by",
@@ -69,20 +69,20 @@ from .view import exibir_profile
     is_flag=True,
     default=False,
     show_default=True,
-    help="Modo verboso (texto descritivo).",
+    help="Modo verboso.",
 )
-def profile(symbol, period, limit, range, by, initial_balance, va_percent, verbose):
+def profile(symbol, period, limit, block, by, initial_balance, va_percent, verbose):
     """Calcula e exibe o Market Profile de um ativo."""
     # Validação simples de entrada
     if va_percent <= 0 or va_percent > 1:
         raise click.BadParameter("va-percent deve estar no intervalo (0, 1].")
-    if range <= 0:
-        raise click.BadParameter("Range deve ser maior que zero.")
+    if block <= 0:
+        raise click.BadParameter("Bloco deve ser maior que zero")
     resultado = obter_profile(
         symbol=symbol,
         period=period,
         limit=int(limit),
-        range=float(range),
+        block=float(block),
         by=by,
         ib_minutes=initial_balance,
         va_percent=va_percent,
