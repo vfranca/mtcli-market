@@ -1,6 +1,10 @@
 from mtcli.logger import setup_logger
 
-from .model import calcular_profile
+from .model import (
+    calcular_profile,
+    obter_estatisticas_do_dia,
+    obter_rates,
+)
 
 log = setup_logger()
 
@@ -29,13 +33,21 @@ def obter_profile(
         log.warning(f"Bloco invalido {block}. Usando 1.0.")
         block = 1.0
 
+    rates = obter_rates(symbol, period, limit)
+
     resultado = calcular_profile(
-        symbol=symbol,
-        limit=limit,
+        rates=rates,
         block=block,
         by=by,
         ib_minutes=ib_minutes,
         va_percent=va_percent,
         timeframe=period,
     )
+
+    if not resultado:
+        resultado = {}
+
+    estatisticas = obter_estatisticas_do_dia(symbol)
+    resultado["estatisticas_dia"] = estatisticas
+
     return resultado

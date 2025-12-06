@@ -37,6 +37,7 @@ def exibir_profile(
     hvn = resultado.get("hvn", [])
     lvn = resultado.get("lvn", [])
     ib = resultado.get("ib")
+    estat = resultado.get("estatisticas_dia", {})
     total_vol = resultado.get("total_volume")
     total_tpo = resultado.get("total_tpo", sum(tpo.values()) if tpo else None)
 
@@ -49,6 +50,14 @@ def exibir_profile(
     click.echo("")
 
     if verbose:
+        if estat:
+            click.echo("INFORMAÇÕES DO DIA (TF D1):")
+            click.echo(f"Abertura:   {_format_num(estat['abertura'], DIGITOS)}")
+            click.echo(f"Fechamento: {_format_num(estat['fechamento'], DIGITOS)}")
+            click.echo(f"Máxima:     {_format_num(estat['maxima'], DIGITOS)}")
+            click.echo(f"Mínima:     {_format_num(estat['minima'], DIGITOS)}")
+            click.echo("")
+
         click.echo(
             "DISTRIBUIÇÃO DE PERFIL (preço : valor) — do preço mais alto para o mais baixo:"
         )
