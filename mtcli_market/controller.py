@@ -1,3 +1,13 @@
+"""
+Camada de controle do módulo Market Profile.
+
+Este módulo atua como intermediário entre a interface (view/cli)
+e a camada de dados (model), sendo responsável por:
+- Validar parâmetros
+- Ajustar valores inválidos
+- Coordenar o fluxo de cálculo do Market Profile
+"""
+
 from mtcli.logger import setup_logger
 
 from .model import (
@@ -18,6 +28,24 @@ def obter_profile(
     ib_minutes: int = 30,
     va_percent: float = 0.7,
 ):
+    """
+    Orquestra a obtenção e cálculo do Market Profile.
+
+    Realiza validações de parâmetros, busca os dados de mercado,
+    calcula o profile e adiciona as estatísticas do dia.
+
+    Args:
+        symbol (str): Código do ativo.
+        period (str): Timeframe.
+        limit (int): Quantidade de candles.
+        block (float): Tamanho do bloco.
+        by (str): Base do profile ("tpo", "tick", "real").
+        ib_minutes (int, opcional): Duração do Initial Balance em minutos.
+        va_percent (float, opcional): Percentual da Value Area.
+
+    Returns:
+        dict: Estrutura completa do Market Profile.
+    """
     # Normalização / validação de parâmetros
     if by not in ("tpo", "tick", "real"):
         log.warning(f"Parametro by invalido {by}. Usando tpo")

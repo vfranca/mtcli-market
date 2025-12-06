@@ -1,3 +1,15 @@
+"""
+Camada de modelo responsável pelo acesso aos dados e cálculos
+do Market Profile.
+
+Este módulo:
+- Conecta ao MetaTrader 5
+- Obtém rates
+- Calcula TPO, volume, POC, Value Area (VAH/VAL)
+- Identifica HVN, LVN
+- Calcula o Initial Balance (IB)
+"""
+
 from collections import OrderedDict, defaultdict
 import datetime
 from math import ceil, floor
@@ -8,10 +20,20 @@ import MetaTrader5 as mt5
 from mtcli.logger import setup_logger
 from mtcli.mt5_context import mt5_conexao
 
+
 log = setup_logger()
 
 
 def _mapear_timeframe(timeframe: str | int) -> int:
+    """
+    Converte um timeframe textual ou numérico para o padrão do MetaTrader 5.
+
+    Args:
+        timeframe (str | int): Ex: "M5", "H1", "D1" ou número de minutos.
+
+    Returns:
+        int: Constante de timeframe do MetaTrader 5.
+    """
     mapping = {
         "M1": mt5.TIMEFRAME_M1,
         "M2": mt5.TIMEFRAME_M2,
@@ -35,12 +57,14 @@ def _mapear_timeframe(timeframe: str | int) -> int:
         "W1": mt5.TIMEFRAME_W1,
         "MN1": mt5.TIMEFRAME_MN1,
     }
+
     if isinstance(timeframe, int):
         minutos = timeframe
     else:
         tf_str = str(timeframe).upper().strip()
         if tf_str in mapping:
             return mapping[tf_str]
+
         minutos = 1
         if tf_str.endswith("M"):
             minutos = int(tf_str[:-1] or 1)
@@ -65,10 +89,18 @@ def _mapear_timeframe(timeframe: str | int) -> int:
         return mt5.TIMEFRAME_D1
 
 
-#####################################################################
-# NOVA FUNÇÃO – obter_rates
-#####################################################################
 def obter_rates(symbol: str, timeframe: str | int, limit: int):
+    """
+    Obtém os candles (rates) diretamente do MetaTrader 5.
+
+    Args:
+        symbol (str): Ativo.
+        timeframe (str | int): Timeframe.
+        limit (int): Quantidade de candles.
+
+    Returns:
+        list: Lista de rates retornados pelo MT5.
+    """
     tf = _mapear_timeframe(timeframe)
 
     with mt5_conexao():
@@ -81,10 +113,16 @@ def obter_rates(symbol: str, timeframe: str | int, limit: int):
     return rates
 
 
-#####################################################################
-# NOVA FUNÇÃO – estatísticas do dia (sempre D1)
-#####################################################################
 def obter_estatisticas_do_dia(symbol: str):
+    """
+    Retorna as estatísticas do dia atual no timeframe D1.
+
+    Args:
+        symbol (str): Ativo.
+
+    Returns:
+        dict | None: Abertura, fechamento, máxima e mínima.
+    """
     rates = obter_rates(symbol, "D1", 1)
 
     if not rates:
@@ -101,47 +139,81 @@ def obter_estatisticas_do_dia(symbol: str):
 
 
 def _range_blocks(low: float, high: float, block: float) -> list[float]:
-    """Lista de blocos de preço cobrindo [low, high], ordem decrescente."""
+    """
+    Gera a lista de blocos de preço no intervalo [low, high].
+
+    Args:
+        low (float): Mínima do candle.
+        high (float): Máxima do candle.
+        block (float): Tamanho do bloco.
+
+    Returns:
+        list[float]: Lista de faixas de preço em ordem decrescente.
+    """
     if block <= 0:
         return []
+
     low_b = floor(low / block) * block
     high_b = ceil(high / block) * block
+
     blocks = []
     b = high_b
     while b >= low_b:
         blocks.append(round(b, 8))
         b -= block
+
     return blocks
 
 
-def _distribuir_volume_uniforme(
-    volume: float, blocks: list[float]
-) -> dict[float, float]:
+def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[float, float]:
+    """
+    Distribui o volume de forma uniforme entre os blocos.
+
+    Args:
+        volume (float): Volume total.
+        blocks (list[float]): Lista de blocos.
+
+    Returns:
+        dict: Volume distribuído por bloco.
+    """
     if not blocks:
         return {}
+
     per = volume / len(blocks)
     return {b: per for b in blocks}
 
 
-def _distribuir_volume_por_overlap(
-    low: float, high: float, block: float
-) -> dict[float, float]:
-    """Distribui volume proporcional ao overlap entre barra e bloco."""
+def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dict[float, float]:
+    """
+    Distribui o volume proporcionalmente ao overlap entre o candle e cada bloco.
+
+    Args:
+        low (float): Mínima do candle.
+        high (float): Máxima do candle.
+        block (float): Tamanho do bloco.
+
+    Returns:
+        dict: Fator de distribuição por bloco.
+    """
     blocks = _range_blocks(low, high, block)
     if not blocks:
         return {}
+
     dist = {}
     for b in blocks:
         block_low = b - block
         block_high = b
+
         overlap_low = max(low, block_low)
         overlap_high = min(high, block_high)
         overlap = max(0.0, overlap_high - overlap_low)
+
         dist[b] = overlap
 
     total = sum(dist.values())
     if total <= 0:
         return _distribuir_volume_uniforme(1.0, blocks)
+
     return {b: dist[b] / total for b in dist}
 
 
@@ -153,7 +225,20 @@ def calcular_profile(
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
 ) -> dict[str, Any]:
-    # ✅ Proteção correta
+    """
+    Calcula a estrutura completa do Market Profile.
+
+    Args:
+        rates (list): Candles do MT5.
+        block (float): Tamanho do bloco.
+        by (str): "tpo", "tick" ou "real".
+        ib_minutes (int): Duração do Initial Balance.
+        va_percent (float): Percentual da Value Area.
+        timeframe (str | int): Timeframe usado.
+
+    Returns:
+        dict[str, Any]: Estrutura completa do Market Profile.
+    """
     if rates is None or len(rates) == 0:
         return {
             "profile": {},
@@ -177,15 +262,12 @@ def calcular_profile(
     profile = defaultdict(float)
     tpo = defaultdict(int)
 
-    # --- Distribuição (TPO, tick volume, real volume) ---
     for r in rates:
         low = float(r["low"])
         high = float(r["high"])
 
         tick_vol = float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
-        real_vol = (
-            float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
-        )
+        real_vol = float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
 
         blocks = _range_blocks(low, high, block)
 
@@ -201,44 +283,40 @@ def calcular_profile(
                 tpo[b] += 1
 
         elif by == "real":
-            volume = real_vol or tick_vol
             weights = _distribuir_volume_por_overlap(low, high, block)
             for b, w in weights.items():
-                profile[b] += w * volume
+                profile[b] += w * real_vol
                 tpo[b] += 1
 
-    # Ordenações
-    ordered_profile = OrderedDict(
-        sorted(profile.items(), key=lambda x: x[0], reverse=True)
-    )
+    ordered_profile = OrderedDict(sorted(profile.items(), key=lambda x: x[0], reverse=True))
     ordered_tpo = OrderedDict(sorted(tpo.items(), key=lambda x: x[0], reverse=True))
 
     total_volume = sum(ordered_profile.values())
     total_tpo = sum(ordered_tpo.values())
 
-    poc = (
-        max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
-    )
+    poc = max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
 
-    # --- Value Area ---
+    # ===== VALUE AREA =====
     def calcular_value_area(profile_map: dict[float, float], percent: float):
-        if not profile_map:
-            return None, None, []
         target = sum(profile_map.values()) * percent
         itens = sorted(profile_map.items(), key=lambda x: x[1], reverse=True)
+
         acum = 0
         escolhidos = []
+
         for price, vol in itens:
             escolhidos.append(price)
             acum += vol
             if acum >= target:
                 break
+
         return max(escolhidos), min(escolhidos), escolhidos
 
     vah, val, va_prices = calcular_value_area(dict(ordered_profile), va_percent)
 
-    # --- HVN e LVN ---
+    # ===== HVN / LVN =====
     hvn, lvn = [], []
+
     if ordered_profile:
         vols = list(ordered_profile.values())
         media = sum(vols) / len(vols)
@@ -250,16 +328,12 @@ def calcular_profile(
             elif vol <= max(0.0, media - desvio):
                 lvn.append(price)
 
-    # =====================================================================
-    #  INITIAL BALANCE (IB)
-    # =====================================================================
-
+    # ===== INITIAL BALANCE =====
     last_ts = rates[-1]["time"]
     d0 = datetime.datetime.fromtimestamp(last_ts).date()
 
     inicio_dia = datetime.datetime(d0.year, d0.month, d0.day, 0, 0)
     inicio_dia_ts = int(inicio_dia.timestamp())
-
     limite_ts = inicio_dia_ts + ib_minutes * 60
 
     ib_rates = [r for r in rates if inicio_dia_ts <= r["time"] <= limite_ts]
@@ -270,8 +344,6 @@ def calcular_profile(
         ib = {"high": ib_high, "low": ib_low}
     else:
         ib = None
-
-    # =====================================================================
 
     return {
         "profile": ordered_profile,
