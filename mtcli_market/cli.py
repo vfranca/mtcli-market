@@ -1,13 +1,5 @@
 """
 Interface de linha de comando (CLI) para exibição do Market Profile.
-
-Este módulo define o comando `profile`, responsável por:
-- Processar os parâmetros informados pelo usuário
-- Validar entradas básicas
-- Acionar a camada de controle
-- Exibir os resultados no terminal
-
-Utiliza a biblioteca `click` para construção da CLI.
 """
 
 import click
@@ -75,6 +67,44 @@ from .view import exibir_profile
     type=float,
     help="Percentual da Value Area.",
 )
+
+# ✅ NOVOS PARÂMETROS DE HVN / LVN
+@click.option(
+    "--criterio-hvn",
+    default="mult",
+    type=click.Choice(["mult", "std", "percentil"]),
+    show_default=True,
+    help="Criterio para calculo de HVN/LVN.",
+)
+@click.option(
+    "--mult-hvn",
+    default=1.5,
+    show_default=True,
+    type=float,
+    help="Multiplicador da media para HVN (criterio mult).",
+)
+@click.option(
+    "--mult-lvn",
+    default=0.5,
+    show_default=True,
+    type=float,
+    help="Multiplicador da media para LVN (criterio mult).",
+)
+@click.option(
+    "--percentil-hvn",
+    default=90,
+    show_default=True,
+    type=float,
+    help="Percentil superior para HVN.",
+)
+@click.option(
+    "--percentil-lvn",
+    default=10,
+    show_default=True,
+    type=float,
+    help="Percentil inferior para LVN.",
+)
+
 @click.option(
     "--verbose",
     "-vv",
@@ -83,27 +113,25 @@ from .view import exibir_profile
     show_default=True,
     help="Modo verboso.",
 )
-def profile(symbol, period, limit, block, by, initial_balance, va_percent, verbose):
+def profile(
+    symbol,
+    period,
+    limit,
+    block,
+    by,
+    initial_balance,
+    va_percent,
+    criterio_hvn,
+    mult_hvn,
+    mult_lvn,
+    percentil_hvn,
+    percentil_lvn,
+    verbose,
+):
     """
     Calcula e exibe o Market Profile de um ativo.
-
-    Este comando:
-    - Valida os parâmetros informados pelo usuário
-    - Obtém os dados de mercado
-    - Calcula o Market Profile
-    - Exibe os resultados no terminal
-
-    Args:
-        symbol (str): Código do ativo.
-        period (str): Timeframe utilizado no profile.
-        limit (int): Quantidade de candles utilizados.
-        block (float): Tamanho do bloco de preços.
-        by (str): Tipo de base do profile ("tpo", "tick", "real").
-        initial_balance (int): Duração do Initial Balance em minutos.
-        va_percent (float): Percentual da Value Area (0 < va ≤ 1).
-        verbose (bool): Exibe detalhes completos do profile.
     """
-    # Validação simples de entrada
+
     if va_percent <= 0 or va_percent > 1:
         raise click.BadParameter("va-percent deve estar no intervalo (0, 1].")
     if block <= 0:
@@ -117,6 +145,11 @@ def profile(symbol, period, limit, block, by, initial_balance, va_percent, verbo
         by=by,
         ib_minutes=initial_balance,
         va_percent=va_percent,
+        criterio_hvn=criterio_hvn,
+        mult_hvn=mult_hvn,
+        mult_lvn=mult_lvn,
+        percentil_hvn=percentil_hvn,
+        percentil_lvn=percentil_lvn,
     )
 
     exibir_profile(resultado, symbol=symbol, verbose=verbose)

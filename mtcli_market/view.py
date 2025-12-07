@@ -132,7 +132,7 @@ def exibir_profile(
 
         if val is not None and vah is not None:
             click.echo(
-                f"Value Area: {_format_num(val, DIGITOS)} (baixo) — {_format_num(vah, DIGITOS)} (alto)."
+                f"Value Area: {_format_num(vah, DIGITOS)} alto — {_format_num(val, DIGITOS)} baixo"
             )
 
         if hvn:
@@ -165,7 +165,7 @@ def exibir_profile(
             click.echo(f"POC {_format_num(poc, DIGITOS)}")
 
         if val and vah:
-            click.echo(f"VA {_format_num(val, DIGITOS)}:{_format_num(vah, DIGITOS)}")
+            click.echo(f"VA {_format_num(vah, DIGITOS)}:{_format_num(val, DIGITOS)}")
 
         if hvn:
             click.echo(f"HVNs {', '.join(_format_num(p, DIGITOS) for p in hvn)}")

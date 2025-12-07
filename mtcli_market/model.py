@@ -25,15 +25,6 @@ log = setup_logger()
 
 
 def _mapear_timeframe(timeframe: str | int) -> int:
-    """
-    Converte um timeframe textual ou numérico para o padrão do MetaTrader 5.
-
-    Args:
-        timeframe (str | int): Ex: "M5", "H1", "D1" ou número de minutos.
-
-    Returns:
-        int: Constante de timeframe do MetaTrader 5.
-    """
     mapping = {
         "M1": mt5.TIMEFRAME_M1,
         "M2": mt5.TIMEFRAME_M2,
@@ -90,17 +81,6 @@ def _mapear_timeframe(timeframe: str | int) -> int:
 
 
 def obter_rates(symbol: str, timeframe: str | int, limit: int):
-    """
-    Obtém os candles (rates) diretamente do MetaTrader 5.
-
-    Args:
-        symbol (str): Ativo.
-        timeframe (str | int): Timeframe.
-        limit (int): Quantidade de candles.
-
-    Returns:
-        list: Lista de rates retornados pelo MT5.
-    """
     tf = _mapear_timeframe(timeframe)
 
     with mt5_conexao():
@@ -114,15 +94,6 @@ def obter_rates(symbol: str, timeframe: str | int, limit: int):
 
 
 def obter_estatisticas_do_dia(symbol: str):
-    """
-    Retorna as estatísticas do dia atual no timeframe D1.
-
-    Args:
-        symbol (str): Ativo.
-
-    Returns:
-        dict | None: Abertura, fechamento, máxima e mínima.
-    """
     rates = obter_rates(symbol, "D1", 1)
 
     if not rates:
@@ -139,17 +110,6 @@ def obter_estatisticas_do_dia(symbol: str):
 
 
 def _range_blocks(low: float, high: float, block: float) -> list[float]:
-    """
-    Gera a lista de blocos de preço no intervalo [low, high].
-
-    Args:
-        low (float): Mínima do candle.
-        high (float): Máxima do candle.
-        block (float): Tamanho do bloco.
-
-    Returns:
-        list[float]: Lista de faixas de preço em ordem decrescente.
-    """
     if block <= 0:
         return []
 
@@ -166,16 +126,6 @@ def _range_blocks(low: float, high: float, block: float) -> list[float]:
 
 
 def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[float, float]:
-    """
-    Distribui o volume de forma uniforme entre os blocos.
-
-    Args:
-        volume (float): Volume total.
-        blocks (list[float]): Lista de blocos.
-
-    Returns:
-        dict: Volume distribuído por bloco.
-    """
     if not blocks:
         return {}
 
@@ -184,17 +134,6 @@ def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[floa
 
 
 def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dict[float, float]:
-    """
-    Distribui o volume proporcionalmente ao overlap entre o candle e cada bloco.
-
-    Args:
-        low (float): Mínima do candle.
-        high (float): Máxima do candle.
-        block (float): Tamanho do bloco.
-
-    Returns:
-        dict: Fator de distribuição por bloco.
-    """
     blocks = _range_blocks(low, high, block)
     if not blocks:
         return {}
@@ -217,6 +156,50 @@ def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dic
     return {b: dist[b] / total for b in dist}
 
 
+# ===============================
+# NOVO: CÁLCULO PROFISSIONAL DE HVN / LVN
+# ===============================
+
+def _calcular_hvn_lvn_por_criterio(
+    profile_map: dict[float, float],
+    criterio: str = "mult",
+    mult_hvn: float = 1.5,
+    mult_lvn: float = 0.5,
+    percentil_hvn: float = 90,
+    percentil_lvn: float = 10,
+):
+    if not profile_map:
+        return [], []
+
+    volumes = list(profile_map.values())
+    media = sum(volumes) / len(volumes)
+
+    if criterio == "std":
+        variancia = sum((v - media) ** 2 for v in volumes) / len(volumes)
+        desvio = variancia ** 0.5
+        limite_hvn = media + desvio
+        limite_lvn = max(0.0, media - desvio)
+
+    elif criterio == "mult":
+        limite_hvn = media * mult_hvn
+        limite_lvn = max(0.0, media * mult_lvn)
+
+    elif criterio == "percentil":
+        vols_ord = sorted(volumes)
+        idx_hvn = int(len(vols_ord) * (percentil_hvn / 100))
+        idx_lvn = int(len(vols_ord) * (percentil_lvn / 100))
+        limite_hvn = vols_ord[min(idx_hvn, len(vols_ord) - 1)]
+        limite_lvn = vols_ord[max(idx_lvn, 0)]
+
+    else:
+        raise ValueError("Critério HVN/LVN inválido. Use: mult, std ou percentil.")
+
+    hvn = [p for p, v in profile_map.items() if v >= limite_hvn]
+    lvn = [p for p, v in profile_map.items() if v <= limite_lvn]
+
+    return hvn, lvn
+
+
 def calcular_profile(
     rates,
     block: float,
@@ -224,21 +207,13 @@ def calcular_profile(
     ib_minutes: int = 30,
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
+    criterio_hvn: str = "mult",   # ✅ NOVO
+    mult_hvn: float = 1.5,
+    mult_lvn: float = 0.5,
+    percentil_hvn: float = 90,
+    percentil_lvn: float = 10,
 ) -> dict[str, Any]:
-    """
-    Calcula a estrutura completa do Market Profile.
 
-    Args:
-        rates (list): Candles do MT5.
-        block (float): Tamanho do bloco.
-        by (str): "tpo", "tick" ou "real".
-        ib_minutes (int): Duração do Initial Balance.
-        va_percent (float): Percentual da Value Area.
-        timeframe (str | int): Timeframe usado.
-
-    Returns:
-        dict[str, Any]: Estrutura completa do Market Profile.
-    """
     if rates is None or len(rates) == 0:
         return {
             "profile": {},
@@ -314,19 +289,15 @@ def calcular_profile(
 
     vah, val, va_prices = calcular_value_area(dict(ordered_profile), va_percent)
 
-    # ===== HVN / LVN =====
-    hvn, lvn = [], []
-
-    if ordered_profile:
-        vols = list(ordered_profile.values())
-        media = sum(vols) / len(vols)
-        desvio = (sum((v - media) ** 2 for v in vols) / len(vols)) ** 0.5
-
-        for price, vol in ordered_profile.items():
-            if vol >= media + desvio:
-                hvn.append(price)
-            elif vol <= max(0.0, media - desvio):
-                lvn.append(price)
+    # ===== HVN / LVN COM CRITÉRIO SELECIONÁVEL =====
+    hvn, lvn = _calcular_hvn_lvn_por_criterio(
+        dict(ordered_profile),
+        criterio=criterio_hvn,
+        mult_hvn=mult_hvn,
+        mult_lvn=mult_lvn,
+        percentil_hvn=percentil_hvn,
+        percentil_lvn=percentil_lvn,
+    )
 
     # ===== INITIAL BALANCE =====
     last_ts = rates[-1]["time"]
@@ -362,4 +333,5 @@ def calcular_profile(
         "block": block,
         "va_percent": va_percent,
         "timeframe": timeframe,
+        "criterio_hvn": criterio_hvn,
     }
