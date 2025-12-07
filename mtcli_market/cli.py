@@ -7,6 +7,7 @@ import click
 from .conf import (
     BY,
     IB,
+    CRITERIO_HVN,
     LIMIT,
     PERIOD,
     RANGE,
@@ -67,11 +68,9 @@ from .view import exibir_profile
     type=float,
     help="Percentual da Value Area.",
 )
-
-# ✅ NOVOS PARÂMETROS DE HVN / LVN
 @click.option(
     "--criterio-hvn",
-    default="mult",
+    default=CRITERIO_HVN,
     type=click.Choice(["mult", "std", "percentil"]),
     show_default=True,
     help="Criterio para calculo de HVN/LVN.",

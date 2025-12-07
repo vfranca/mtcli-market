@@ -14,6 +14,7 @@ Parâmetros configuráveis:
 - RANGE    : Tamanho do bloco do Market Profile
 - BY       : Base do profile (tpo, tick, real)
 - IB       : Duração do Initial Balance em minutos
+- CRITERIO_HVN : Critério para calcular HVN e LVN(std, mult, percentil)
 - DIGITOS  : Quantidade de casas decimais na exibição
 """
 
@@ -44,3 +45,6 @@ IB = int(os.getenv("IB", str(config["DEFAULT"].getint("ib", fallback=30))))
 DIGITOS = int(
     os.getenv("DIGITOS", str(config["DEFAULT"].getint("digitos", fallback=0)))
 )
+
+#: Critério para calcular HVN e LVN: "std", "mult" ou "percentil"
+CRITERIO_HVN = os.getenv("CRITERIO_HVN", config["DEFAULT"].get("criterio_hvn", fallback="mult"))
