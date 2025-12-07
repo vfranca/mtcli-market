@@ -1,6 +1,6 @@
 [project]
 name = "mtcli-market"
-version = "1.2.0.dev2"
+version = "1.2.0.dev3"
 description = "Plugin mtcli para exibição do market profile"
 authors = [
     {name = "Valmir França",email = "vfranca3@gmail.com"}
