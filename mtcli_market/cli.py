@@ -71,6 +71,7 @@ from .view import exibir_profile
 )
 @click.option(
     "--criterio-hvn",
+    "-ch",
     default=CRITERIO_HVN,
     type=click.Choice(["mult", "std", "percentil"]),
     show_default=True,
@@ -78,6 +79,7 @@ from .view import exibir_profile
 )
 @click.option(
     "--mult-hvn",
+    "-mh",
     default=1.5,
     show_default=True,
     type=float,
@@ -85,6 +87,7 @@ from .view import exibir_profile
 )
 @click.option(
     "--mult-lvn",
+    "-ml",
     default=0.5,
     show_default=True,
     type=float,
@@ -92,6 +95,7 @@ from .view import exibir_profile
 )
 @click.option(
     "--percentil-hvn",
+    "-ph",
     default=90,
     show_default=True,
     type=float,
@@ -99,12 +103,20 @@ from .view import exibir_profile
 )
 @click.option(
     "--percentil-lvn",
+    "-pl",
     default=10,
     show_default=True,
     type=float,
     help="Percentil inferior para LVN.",
 )
-@click.option("--market", "-mkt", default=MARKET, show_default=True, help="")
+@click.option(
+    "--market",
+    "-m",
+    type=click.Choice(["b3_fut", "b3_stk", "eua", "eua_summer", "euro", "euro_summer"]),
+    default=MARKET,
+    show_default=True,
+    help="Mercado para timezone offset",
+)
 @click.option(
     "--verbose",
     "-vv",

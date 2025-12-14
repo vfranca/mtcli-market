@@ -213,7 +213,7 @@ def calcular_profile(
     percentil_lvn: float = 10,
     market_start_hour: int = 9,  # Hora de início do pregão
     market_start_minute: int = 0,  # Minuto de início do pregão
-    market_timezone_offset: int = 3,  # ✅ NOVO (UTC offset)
+    market_timezone_offset: int = -3,  # ✅ NOVO (UTC offset)
 ) -> dict[str, Any]:
     if rates is None or len(rates) == 0:
         return {
@@ -319,7 +319,7 @@ def calcular_profile(
 
     # Converte horário local → UTC
     inicio_pregao_utc = inicio_pregao_local - datetime.timedelta(
-        hours=market_timezone_offset
+        hours=-market_timezone_offset
     )
 
     inicio_pregao_ts = int(inicio_pregao_utc.timestamp())

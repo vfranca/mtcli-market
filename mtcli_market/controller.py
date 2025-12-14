@@ -71,7 +71,7 @@ def obter_profile(
         percentil_lvn=percentil_lvn,
         market_start_hour=MARKETS.get(market).get("hour", 9),
         market_start_minute=MARKETS.get(market).get("minute", 0),
-        market_timezone_offset=MARKETS.get(market).get("utc_offset", 3),
+        market_timezone_offset=MARKETS.get(market).get("utc_offset", -3),
     )
 
     if not resultado:
