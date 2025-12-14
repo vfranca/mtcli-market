@@ -143,7 +143,7 @@ def exibir_profile(
 
         if ib:
             click.echo(
-                f"IB: {_format_num(ib['low'], DIGITOS)} — {_format_num(ib['high'], DIGITOS)}."
+                f"IB: {_format_num(ib['high'], DIGITOS)} — {_format_num(ib['low'], DIGITOS)}."
             )
 
         if tpo:
@@ -175,7 +175,7 @@ def exibir_profile(
 
         if ib:
             click.echo(
-                f"IB {_format_num(ib['low'], DIGITOS)}:{_format_num(ib['high'], DIGITOS)}"
+                f"IB {_format_num(ib['high'], DIGITOS)}:{_format_num(ib['low'], DIGITOS)}"
             )
 
     click.echo("")
