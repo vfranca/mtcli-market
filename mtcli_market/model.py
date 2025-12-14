@@ -156,10 +156,6 @@ def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dic
     return {b: dist[b] / total for b in dist}
 
 
-# ===============================
-# NOVO: CÁLCULO PROFISSIONAL DE HVN / LVN
-# ===============================
-
 def _calcular_hvn_lvn_por_criterio(
     profile_map: dict[float, float],
     criterio: str = "mult",
@@ -207,11 +203,13 @@ def calcular_profile(
     ib_minutes: int = 30,
     va_percent: float = 0.7,
     timeframe: str | int = "M1",
-    criterio_hvn: str = "mult",   # ✅ NOVO
+    criterio_hvn: str = "mult",
     mult_hvn: float = 1.5,
     mult_lvn: float = 0.5,
     percentil_hvn: float = 90,
     percentil_lvn: float = 10,
+    market_start_hour: int = 6,   # Hora de início do pregão
+    market_start_minute: int = 0, # Minuto de início do pregão
 ) -> dict[str, Any]:
 
     if rates is None or len(rates) == 0:
@@ -303,11 +301,15 @@ def calcular_profile(
     last_ts = rates[-1]["time"]
     d0 = datetime.datetime.fromtimestamp(last_ts).date()
 
-    inicio_dia = datetime.datetime(d0.year, d0.month, d0.day, 0, 0)
-    inicio_dia_ts = int(inicio_dia.timestamp())
-    limite_ts = inicio_dia_ts + ib_minutes * 60
+    # Define o início do pregão de acordo com o mercado
+    inicio_pregao = datetime.datetime(
+        d0.year, d0.month, d0.day,
+        market_start_hour, market_start_minute
+    )
+    inicio_pregao_ts = int(inicio_pregao.timestamp())
+    limite_ts = inicio_pregao_ts + ib_minutes * 60
 
-    ib_rates = [r for r in rates if inicio_dia_ts <= r["time"] <= limite_ts]
+    ib_rates = [r for r in rates if inicio_pregao_ts <= r["time"] <= limite_ts]
 
     if ib_rates:
         ib_high = max(r["high"] for r in ib_rates)
@@ -334,4 +336,6 @@ def calcular_profile(
         "va_percent": va_percent,
         "timeframe": timeframe,
         "criterio_hvn": criterio_hvn,
+        "market_start_hour": market_start_hour,
+        "market_start_minute": market_start_minute,
     }
