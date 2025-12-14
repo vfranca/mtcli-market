@@ -4,6 +4,7 @@ Camada de controle do módulo Market Profile.
 
 from mtcli.logger import setup_logger
 
+from .market_config import MARKETS
 from .model import (
     calcular_profile,
     obter_estatisticas_do_dia,
@@ -26,6 +27,7 @@ def obter_profile(
     mult_lvn: float = 0.5,
     percentil_hvn: float = 90,
     percentil_lvn: float = 10,
+    market: str = "b3_fut",
 ):
     """
     Orquestra a obtenção e cálculo do Market Profile.
@@ -49,6 +51,10 @@ def obter_profile(
         log.warning("criterio_hvn invalido. Usando mult.")
         criterio_hvn = "mult"
 
+    if market not in ("b3_fut", "b3_stk", "eua", "eua_summer", "euro", "euro_summer"):
+        log.warning("market invalido. Usando b3_fut.")
+        market = "b3_fut"
+
     rates = obter_rates(symbol, period, limit)
 
     resultado = calcular_profile(
@@ -63,6 +69,9 @@ def obter_profile(
         mult_lvn=mult_lvn,
         percentil_hvn=percentil_hvn,
         percentil_lvn=percentil_lvn,
+        market_start_hour=MARKETS.get(market).get("hour", 9),
+        market_start_minute=MARKETS.get(market).get("minute", 0),
+        market_timezone_offset=MARKETS.get(market).get("utc_offset", 3),
     )
 
     if not resultado:

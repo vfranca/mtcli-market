@@ -20,7 +20,6 @@ import MetaTrader5 as mt5
 from mtcli.logger import setup_logger
 from mtcli.mt5_context import mt5_conexao
 
-
 log = setup_logger()
 
 
@@ -125,7 +124,9 @@ def _range_blocks(low: float, high: float, block: float) -> list[float]:
     return blocks
 
 
-def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[float, float]:
+def _distribuir_volume_uniforme(
+    volume: float, blocks: list[float]
+) -> dict[float, float]:
     if not blocks:
         return {}
 
@@ -133,7 +134,9 @@ def _distribuir_volume_uniforme(volume: float, blocks: list[float]) -> dict[floa
     return {b: per for b in blocks}
 
 
-def _distribuir_volume_por_overlap(low: float, high: float, block: float) -> dict[float, float]:
+def _distribuir_volume_por_overlap(
+    low: float, high: float, block: float
+) -> dict[float, float]:
     blocks = _range_blocks(low, high, block)
     if not blocks:
         return {}
@@ -172,7 +175,7 @@ def _calcular_hvn_lvn_por_criterio(
 
     if criterio == "std":
         variancia = sum((v - media) ** 2 for v in volumes) / len(volumes)
-        desvio = variancia ** 0.5
+        desvio = variancia**0.5
         limite_hvn = media + desvio
         limite_lvn = max(0.0, media - desvio)
 
@@ -208,10 +211,10 @@ def calcular_profile(
     mult_lvn: float = 0.5,
     percentil_hvn: float = 90,
     percentil_lvn: float = 10,
-    market_start_hour: int = 6,   # Hora de início do pregão
-    market_start_minute: int = 0, # Minuto de início do pregão
+    market_start_hour: int = 9,  # Hora de início do pregão
+    market_start_minute: int = 0,  # Minuto de início do pregão
+    market_timezone_offset: int = 3,  # ✅ NOVO (UTC offset)
 ) -> dict[str, Any]:
-
     if rates is None or len(rates) == 0:
         return {
             "profile": {},
@@ -240,7 +243,9 @@ def calcular_profile(
         high = float(r["high"])
 
         tick_vol = float(r["tick_volume"]) if "tick_volume" in r.dtype.names else 0.0
-        real_vol = float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
+        real_vol = (
+            float(r["real_volume"]) if "real_volume" in r.dtype.names else tick_vol
+        )
 
         blocks = _range_blocks(low, high, block)
 
@@ -261,13 +266,17 @@ def calcular_profile(
                 profile[b] += w * real_vol
                 tpo[b] += 1
 
-    ordered_profile = OrderedDict(sorted(profile.items(), key=lambda x: x[0], reverse=True))
+    ordered_profile = OrderedDict(
+        sorted(profile.items(), key=lambda x: x[0], reverse=True)
+    )
     ordered_tpo = OrderedDict(sorted(tpo.items(), key=lambda x: x[0], reverse=True))
 
     total_volume = sum(ordered_profile.values())
     total_tpo = sum(ordered_tpo.values())
 
-    poc = max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
+    poc = (
+        max(ordered_profile.items(), key=lambda x: x[1])[0] if ordered_profile else None
+    )
 
     # ===== VALUE AREA =====
     def calcular_value_area(profile_map: dict[float, float], percent: float):
@@ -297,18 +306,26 @@ def calcular_profile(
         percentil_lvn=percentil_lvn,
     )
 
-    # ===== INITIAL BALANCE =====
-    last_ts = rates[-1]["time"]
-    d0 = datetime.datetime.fromtimestamp(last_ts).date()
+    # ===== INITIAL BALANCE (UTC-AWARE) =====
 
-    # Define o início do pregão de acordo com o mercado
-    inicio_pregao = datetime.datetime(
-        d0.year, d0.month, d0.day,
-        market_start_hour, market_start_minute
+    # Data do último candle (sempre em UTC no MT5)
+    last_ts = rates[-1]["time"]
+    d0_utc = datetime.datetime.utcfromtimestamp(last_ts).date()
+
+    # Horário local do início do pregão
+    inicio_pregao_local = datetime.datetime(
+        d0_utc.year, d0_utc.month, d0_utc.day, market_start_hour, market_start_minute
     )
-    inicio_pregao_ts = int(inicio_pregao.timestamp())
+
+    # Converte horário local → UTC
+    inicio_pregao_utc = inicio_pregao_local - datetime.timedelta(
+        hours=market_timezone_offset
+    )
+
+    inicio_pregao_ts = int(inicio_pregao_utc.timestamp())
     limite_ts = inicio_pregao_ts + ib_minutes * 60
 
+    # Filtra candles dentro da janela do IB (UTC)
     ib_rates = [r for r in rates if inicio_pregao_ts <= r["time"] <= limite_ts]
 
     if ib_rates:

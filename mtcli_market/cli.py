@@ -6,9 +6,10 @@ import click
 
 from .conf import (
     BY,
-    IB,
     CRITERIO_HVN,
+    IB,
     LIMIT,
+    MARKET,
     PERIOD,
     RANGE,
     SYMBOL,
@@ -103,7 +104,7 @@ from .view import exibir_profile
     type=float,
     help="Percentil inferior para LVN.",
 )
-
+@click.option("--market", "-mkt", default=MARKET, show_default=True, help="")
 @click.option(
     "--verbose",
     "-vv",
@@ -125,6 +126,7 @@ def profile(
     mult_lvn,
     percentil_hvn,
     percentil_lvn,
+    market,
     verbose,
 ):
     """
@@ -149,6 +151,7 @@ def profile(
         mult_lvn=mult_lvn,
         percentil_hvn=percentil_hvn,
         percentil_lvn=percentil_lvn,
+        market=market,
     )
 
     exibir_profile(resultado, symbol=symbol, verbose=verbose)

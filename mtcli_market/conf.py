@@ -22,7 +22,6 @@ import os
 
 from mtcli.conf import config
 
-
 #: Código do ativo padrão
 SYMBOL = os.getenv("SYMBOL", config["DEFAULT"].get("symbol", fallback="WIN$N"))
 
@@ -47,4 +46,9 @@ DIGITOS = int(
 )
 
 #: Critério para calcular HVN e LVN: "std", "mult" ou "percentil"
-CRITERIO_HVN = os.getenv("CRITERIO_HVN", config["DEFAULT"].get("criterio_hvn", fallback="mult"))
+CRITERIO_HVN = os.getenv(
+    "CRITERIO_HVN", config["DEFAULT"].get("criterio_hvn", fallback="mult")
+)
+
+#: Meracado: "b3_fut", "b3_stk", "eua", "eua_summer"
+MARKET = os.getenv("MARKET", config["DEFAULT"].get("market", fallback="b3_fut"))
