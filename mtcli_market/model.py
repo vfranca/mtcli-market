@@ -318,8 +318,8 @@ def calcular_profile(
     )
 
     # Converte horário local → UTC
-    inicio_pregao_utc = inicio_pregao_local - datetime.timedelta(
-        hours=-market_timezone_offset
+    inicio_pregao_utc = inicio_pregao_local + datetime.timedelta(
+        hours=market_timezone_offset
     )
 
     inicio_pregao_ts = int(inicio_pregao_utc.timestamp())

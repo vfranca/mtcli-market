@@ -33,27 +33,37 @@ def obter_profile(
     Orquestra a obtenção e cálculo do Market Profile.
     """
 
+    # -------- validações defensivas --------
+
     if by not in ("tpo", "tick", "real"):
-        log.warning(f"Parametro by invalido {by}. Usando tpo")
+        log.warning(f"Parametro 'by' invalido ({by}). Usando 'tpo'.")
         by = "tpo"
 
     if va_percent <= 0 or va_percent > 1:
-        log.warning("va_percent fora de intervalo (0,1]. Usando 0.7")
+        log.warning("va_percent fora do intervalo (0,1]. Usando 0.7.")
         va_percent = 0.7
 
     try:
         block = float(block)
+        if block <= 0:
+            raise ValueError
     except Exception:
-        log.warning(f"Bloco invalido {block}. Usando 1.0.")
+        log.warning(f"Bloco invalido ({block}). Usando 1.0.")
         block = 1.0
 
     if criterio_hvn not in ("mult", "std", "percentil"):
-        log.warning("criterio_hvn invalido. Usando mult.")
+        log.warning("criterio_hvn invalido. Usando 'mult'.")
         criterio_hvn = "mult"
 
-    if market not in ("b3_fut", "b3_stk", "eua", "eua_summer", "euro", "euro_summer"):
-        log.warning("market invalido. Usando b3_fut.")
+    # -------- mercado / timezone --------
+
+    if market not in MARKETS:
+        log.warning(f"market invalido ({market}). Usando 'b3_fut'.")
         market = "b3_fut"
+
+    market_cfg = MARKETS.get(market, MARKETS["b3_fut"])
+
+    # -------- dados --------
 
     rates = obter_rates(symbol, period, limit)
 
@@ -69,9 +79,9 @@ def obter_profile(
         mult_lvn=mult_lvn,
         percentil_hvn=percentil_hvn,
         percentil_lvn=percentil_lvn,
-        market_start_hour=MARKETS.get(market).get("hour", 9),
-        market_start_minute=MARKETS.get(market).get("minute", 0),
-        market_timezone_offset=MARKETS.get(market).get("utc_offset", -3),
+        market_start_hour=market_cfg.get("hour", 9),
+        market_start_minute=market_cfg.get("minute", 0),
+        market_timezone_offset=market_cfg.get("utc_offset", -3),
     )
 
     if not resultado:

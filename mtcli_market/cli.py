@@ -16,6 +16,7 @@ from .conf import (
 )
 from .controller import obter_profile
 from .view import exibir_profile
+from .market_config import MARKETS
 
 
 @click.command()
@@ -112,10 +113,10 @@ from .view import exibir_profile
 @click.option(
     "--market",
     "-m",
-    type=click.Choice(["b3_fut", "b3_stk", "eua", "eua_summer", "euro", "euro_summer"]),
+    type=click.Choice(sorted(MARKETS.keys())),
     default=MARKET,
     show_default=True,
-    help="Mercado para timezone offset",
+    help="Mercado para timezone offset.",
 )
 @click.option(
     "--verbose",
@@ -147,8 +148,9 @@ def profile(
 
     if va_percent <= 0 or va_percent > 1:
         raise click.BadParameter("va-percent deve estar no intervalo (0, 1].")
+
     if block <= 0:
-        raise click.BadParameter("Bloco deve ser maior que zero")
+        raise click.BadParameter("Bloco deve ser maior que zero.")
 
     resultado = obter_profile(
         symbol=symbol,
