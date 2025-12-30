@@ -49,7 +49,7 @@ from .market_config import MARKETS
 )
 @click.option(
     "--by",
-    type=click.Choice(["tpo", "tick", "real"]),
+    type=click.Choice(["tpo", "tick", "volume"]),
     default=BY,
     show_default=True,
     help="Base para o profile.",

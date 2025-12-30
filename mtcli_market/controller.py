@@ -35,7 +35,7 @@ def obter_profile(
 
     # -------- validações defensivas --------
 
-    if by not in ("tpo", "tick", "real"):
+    if by not in ("tpo", "tick", "volume"):
         log.warning(f"Parametro 'by' invalido ({by}). Usando 'tpo'.")
         by = "tpo"
 

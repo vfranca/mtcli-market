@@ -260,7 +260,7 @@ def calcular_profile(
                 profile[b] += w * tick_vol
                 tpo[b] += 1
 
-        elif by == "real":
+        elif by == "volume":
             weights = _distribuir_volume_por_overlap(low, high, block)
             for b, w in weights.items():
                 profile[b] += w * real_vol
