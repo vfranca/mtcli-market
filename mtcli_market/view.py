@@ -99,21 +99,21 @@ def exibir_profile(
     # ======================================================================
     if verbose:
         if estat:
-            click.echo("INFORMAÇÕES DO DIA (TF D1):")
-            click.echo(f"Abertura:   {_format_num(estat['abertura'], DIGITOS)}")
-            click.echo(f"Fechamento: {_format_num(estat['fechamento'], DIGITOS)}")
-            click.echo(f"Máxima:     {_format_num(estat['maxima'], DIGITOS)}")
-            click.echo(f"Mínima:     {_format_num(estat['minima'], DIGITOS)}")
+            click.echo("INFORMACOES DO DIA d0")
+            # click.echo(f"Abertura   {_format_num(estat['abertura'], DIGITOS)}")
+            click.echo(f"Fechamento {_format_num(estat['fechamento'], DIGITOS)}")
+            click.echo(f"Maxima     {_format_num(estat['maxima'], DIGITOS)}")
+            click.echo(f"Minima     {_format_num(estat['minima'], DIGITOS)}")
             click.echo("")
 
         click.echo(
-            "DISTRIBUIÇÃO DE PERFIL (preço : valor) — do preço mais alto para o mais baixo:"
+            "DISTRIBUICAO DE PERFIL (preco : volume) — do preco mais alto para o mais baixo"
         )
 
         prices = list(profile.keys())
         if prices:
             max_price_len = max(len(_format_num(p, DIGITOS)) for p in prices)
-            click.echo(f"{'PREÇO'.ljust(max_price_len)}   VALOR")
+            click.echo(f"{'PRECO'.ljust(max_price_len)}   VOLUME")
             click.echo(f"{'-' * max_price_len}   -----")
 
         for price, vol in profile.items():
@@ -122,33 +122,33 @@ def exibir_profile(
             )
 
         if total_vol is not None:
-            click.echo(f"Total acumulado: {_format_num(total_vol, DIGITOS)}.")
+            click.echo(f"Total acumulado {_format_num(total_vol, DIGITOS)}.")
 
         if total_tpo is not None and resultado.get("by") == "time":
-            click.echo(f"Total de TPOs: {total_tpo}.")
+            click.echo(f"Total de TPOs {total_tpo}.")
 
         if poc is not None:
-            click.echo(f"POC: {_format_num(poc, DIGITOS)}.")
+            click.echo(f"POC {_format_num(poc, DIGITOS)}.")
 
         if val is not None and vah is not None:
             click.echo(
-                f"Value Area: {_format_num(vah, DIGITOS)} alto — {_format_num(val, DIGITOS)} baixo"
+                f"Value Area {_format_num(vah, DIGITOS)} alto — {_format_num(val, DIGITOS)} baixo"
             )
 
         if hvn:
-            click.echo(f"HVNs: {', '.join(_format_num(p, DIGITOS) for p in hvn)}.")
+            click.echo(f"HVNs {', '.join(_format_num(p, DIGITOS) for p in hvn)}.")
 
         if lvn:
-            click.echo(f"LVNs: {', '.join(_format_num(p, DIGITOS) for p in lvn)}.")
+            click.echo(f"LVNs {', '.join(_format_num(p, DIGITOS) for p in lvn)}.")
 
         if ib:
             click.echo(
-                f"IB: {_format_num(ib['high'], DIGITOS)} — {_format_num(ib['low'], DIGITOS)}."
+                f"IB {_format_num(ib['high'], DIGITOS)} — {_format_num(ib['low'], DIGITOS)}."
             )
 
         if tpo:
             click.echo("")
-            click.echo("TPOs por faixa:")
+            click.echo("TPOs por bloco")
             for price, cnt in tpo.items():
                 click.echo(f"{_format_num(price, DIGITOS)} : {cnt}")
 
