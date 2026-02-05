@@ -97,7 +97,7 @@ from .market_config import MARKETS
 @click.option(
     "--percentil-hvn",
     "-ph",
-    default=90,
+    default=80,
     show_default=True,
     type=float,
     help="Percentil superior para HVN.",
@@ -105,7 +105,7 @@ from .market_config import MARKETS
 @click.option(
     "--percentil-lvn",
     "-pl",
-    default=10,
+    default=20,
     show_default=True,
     type=float,
     help="Percentil inferior para LVN.",
