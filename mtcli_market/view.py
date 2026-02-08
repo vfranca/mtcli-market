@@ -99,11 +99,11 @@ def exibir_profile(
     # ======================================================================
     if verbose:
         if estat:
-            click.echo("INFORMACOES DO DIA d0")
-            # click.echo(f"Abertura   {_format_num(estat['abertura'], DIGITOS)}")
+            # click.echo("INFORMACOES DO DIA d0")
+            click.echo(f"Abertura   {_format_num(estat['abertura'], DIGITOS)}")
             click.echo(f"Fechamento {_format_num(estat['fechamento'], DIGITOS)}")
-            click.echo(f"Maxima     {_format_num(estat['maxima'], DIGITOS)}")
-            click.echo(f"Minima     {_format_num(estat['minima'], DIGITOS)}")
+            # click.echo(f"Maxima     {_format_num(estat['maxima'], DIGITOS)}")
+            # click.echo(f"Minima     {_format_num(estat['minima'], DIGITOS)}")
             click.echo("")
 
         click.echo(
@@ -124,7 +124,7 @@ def exibir_profile(
         if total_vol is not None:
             click.echo(f"Total acumulado {_format_num(total_vol, DIGITOS)}.")
 
-        if total_tpo is not None and resultado.get("by") == "time":
+        if total_tpo is not None and resultado.get("by") == "tpo":
             click.echo(f"Total de TPOs {total_tpo}.")
 
         if poc is not None:

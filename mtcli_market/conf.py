@@ -47,7 +47,7 @@ DIGITOS = int(
 
 #: Critério para calcular HVN e LVN: "std", "mult" ou "percentil"
 CRITERIO_HVN = os.getenv(
-    "CRITERIO_HVN", config["DEFAULT"].get("criterio_hvn", fallback="mult")
+    "CRITERIO_HVN", config["DEFAULT"].get("criterio_hvn", fallback="percentil")
 )
 
 #: Meracado: "b3_fut", "b3_stk", "eua", "eua_summer"
